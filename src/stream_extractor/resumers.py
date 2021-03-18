@@ -1,16 +1,28 @@
+import pickle
+
+
 class AbstractResumer:
 
     def save(self, *args, **kwargs):
         raise NotImplementedError
 
+    def _dump(self):
+        with open(self.__class__.__name__, 'wb')as outfile:
+            pickle.dump(self, outfile)
 
-class ElasticSearchResumer(AbstractResumer):
+    def load(self):
+        try:
+            with open(self.__class__.__name__, 'rb')as infile:
+                res = pickle.load(infile)
+            return res
+        except:
+            return self
 
-    def __getstate__(self):
-        return super().__getstate__()
 
-    def __setstate__(self):
-        return super().__setstate__()
+class LastIdResumer(AbstractResumer):
 
-    def save(self, *args, **kwargs):
-        return super().save(*args, **kwargs)
+    last_id = 0
+
+    def save(self, last_id, *args, **kwargs):
+        self.last_id = last_id
+        self._dump()

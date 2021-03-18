@@ -6,10 +6,11 @@ sys.path.append('../..')
 
 from stream_extractor.extractor import StreamFactory
 from stream_extractor.indexExtractors import AbstractIndexExtractor
-from stream_extractor.streams import ElasticSearchStream
+from stream_extractor.streams import ElasticSearchStream, ElasticSearchOrderedStream
 from stream_extractor.utils import decouple
 from stream_extractor.valueExtractors import SentimentScoreExtractor
 from stream_extractor.exporter import InMemoryExporter
+from stream_extractor.resumers import LastIdResumer
 
 load_dotenv()
 
@@ -29,7 +30,10 @@ class CompanyIndexExtractor(AbstractIndexExtractor):
         )
 
 
-stream = ElasticSearchStream()
+resumer = LastIdResumer()
+resumer.last_id = 1955300
+
+stream = ElasticSearchOrderedStream(resumer)
 index_extractor = CompanyIndexExtractor()
 value_extractors = [SentimentScoreExtractor()]
 exporter = InMemoryExporter()
@@ -39,7 +43,7 @@ extractor = StreamFactory(
     index_extractor,
     'publish_date',
     value_extractors,
-    1,
+    100,
     exporter
 )
 
