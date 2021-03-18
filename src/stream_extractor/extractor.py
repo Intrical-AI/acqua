@@ -1,21 +1,35 @@
 import typing
 import dateutil.parser
-from collections import defaultdict
+
+from rx.subject import Subject
+
+from .streams import AbstractStream
+from .indexExtractors import AbstractIndexExtractor
+from .exporter import AbstractExporter
+from .utils import rec_dd
 
 
-def rec_dd():
-    return defaultdict(rec_dd)
+class StreamFactory:
 
+    def __init__(self,
+                 stream: AbstractStream,
+                 index_extractor: AbstractIndexExtractor,
+                 datefield: str,
+                 value_extractors: list,
+                 num_max_items=float('inf'),
+                 exporter: AbstractExporter = None):
 
-class StreamExtractor:
-
-    def __init__(self, stream, index_extractor, datefield: str, value_extractors: list, num_max_items=float('inf')):
         self.stream = stream
         self.index_extractor = index_extractor
         self.datefield = datefield
         self.value_extractors = value_extractors
         self.max_num_items = num_max_items
         self.values = rec_dd()
+        self.exporter = exporter
+        self._product_subject = Subject()
+
+        if exporter:
+            self._product_subject.subscribe(exporter)
 
     def run(self):
         for i, doc in self.stream.subscribe():
@@ -33,3 +47,5 @@ class StreamExtractor:
                         x = extractor.POINT_CLASS()
                         self.values[index][extractor.KEY][date_p] = x
                     x(value)
+                    if self.exporter:
+                        self._product_subject.on_next((index, extractor.KEY, date_p, x))

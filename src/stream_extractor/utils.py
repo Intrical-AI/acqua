@@ -1,4 +1,7 @@
-def decouple(obj, query:str):
+from collections import defaultdict
+
+
+def decouple(obj, query: str):
     # recursive bounce
     cast_query = query.split('.')
     if len(cast_query) == 1 and cast_query[0] == '':
@@ -12,3 +15,7 @@ def decouple(obj, query:str):
                 yield from decouple(items, rebuilt)
         else:
             yield from decouple(getattr(obj, inner), rebuilt)
+
+
+def rec_dd():
+    return defaultdict(rec_dd)

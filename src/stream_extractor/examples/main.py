@@ -4,11 +4,12 @@ from dotenv import load_dotenv
 
 sys.path.append('../..')
 
-from stream_extractor.extractor import StreamExtractor
+from stream_extractor.extractor import StreamFactory
 from stream_extractor.indexExtractors import AbstractIndexExtractor
 from stream_extractor.streams import ElasticSearchStream
 from stream_extractor.utils import decouple
 from stream_extractor.valueExtractors import SentimentScoreExtractor
+from stream_extractor.exporter import InMemoryExporter
 
 load_dotenv()
 
@@ -31,15 +32,17 @@ class CompanyIndexExtractor(AbstractIndexExtractor):
 stream = ElasticSearchStream()
 index_extractor = CompanyIndexExtractor()
 value_extractors = [SentimentScoreExtractor()]
+exporter = InMemoryExporter()
 
-
-extractor = StreamExtractor(
+extractor = StreamFactory(
     stream,
     index_extractor,
     'publish_date',
     value_extractors,
-    1
+    1,
+    exporter
 )
 
 extractor.run()
 print(extractor.values)
+print(exporter.values)
