@@ -74,7 +74,7 @@ class MongoDbExporter(AbstractExporter):
         index, key, date_p, date, x, value = item
         mongo_id = self.build_id(index, key)
         if settings.MONGO_DB_COLLECTION_BULK:
-            self.values[mongo_id['_id']][date.isoformat()] = x
+            self.values[mongo_id['_id']][date.date().isoformat()] = x
         else:
             self.batch.add((frozendict(mongo_id), tuple(item)))
         self._doc_counter += 1
