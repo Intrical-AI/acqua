@@ -19,7 +19,7 @@ class StreamFactory:
                  datefield: str,
                  value_extractors: List[AbstractValueExtractor],
                  num_max_items=float('inf'),
-                 exporter: AbstractExporter = None,
+                 exporters: List[AbstractExporter] = [],
                  save_every=1):
 
         self.stream = stream
@@ -28,12 +28,12 @@ class StreamFactory:
         self.value_extractors: List[AbstractValueExtractor] = value_extractors
         self.max_num_items = num_max_items
         self.values = rec_dd()
-        self.exporter = exporter
+        self.exporters = exporters
         self._product_subject = Subject()
         self.doc_counter = 0
         self.save_every = save_every
 
-        if exporter:
+        for exporter in exporters:
             self._product_subject.subscribe(exporter)
 
     def load_state(self):
@@ -56,8 +56,8 @@ class StreamFactory:
                         x = extractor.POINT_CLASS()
                         self.values[index][extractor.KEY][date_p] = x
                     x(value)
-                    if self.exporter:
-                        self._product_subject.on_next((index, extractor.KEY, date_p, x))
+                    if self.exporters:
+                        self._product_subject.on_next((index, extractor.KEY, date_p, date, x, value))
             if self.doc_counter % self.save_every == 0:
                 self.stream.save_state()
             self.doc_counter += 1

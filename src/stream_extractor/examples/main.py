@@ -10,6 +10,7 @@ from stream_extractor.streams import ElasticSearchStream, ElasticSearchOrderedSt
 from stream_extractor.utils import decouple
 from stream_extractor.valueExtractors import SentimentScoreExtractor
 from stream_extractor.exporters.exporters import InMemoryExporter
+from stream_extractor.exporters.db import MongoDbExporter
 from stream_extractor.resumers import LastIdResumer
 
 load_dotenv()
@@ -36,16 +37,16 @@ resumer.last_id = 1955300
 stream = ElasticSearchOrderedStream(resumer)
 index_extractor = CompanyIndexExtractor()
 value_extractors = [SentimentScoreExtractor()]
-exporter = InMemoryExporter()
+exporters = [InMemoryExporter(), MongoDbExporter()]
 
 extractor = StreamFactory(
     stream,
     index_extractor,
     'publish_date',
     value_extractors,
-    100,
-    exporter
+    1,
+    exporters
 )
 
 extractor.run()
-print(exporter.values)
+print(exporters[0].values)

@@ -62,7 +62,7 @@ class ElasticSearchStream(AbstractStream):
 class ElasticSearchOrderedStream(ElasticSearchStream):
 
     last_id = 0
-    page_size = 1000
+    page_size = 10
 
     def subscribe(self):
         while True:
