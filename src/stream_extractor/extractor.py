@@ -6,7 +6,7 @@ from rx.subject import Subject
 
 from .streams import AbstractStream
 from .indexExtractors import AbstractIndexExtractor
-from .exporter import AbstractExporter
+from .exporters.exporters import AbstractExporter
 from .valueExtractors import AbstractValueExtractor
 from .utils import rec_dd
 

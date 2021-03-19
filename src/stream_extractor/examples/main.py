@@ -9,7 +9,7 @@ from stream_extractor.indexExtractors import AbstractIndexExtractor
 from stream_extractor.streams import ElasticSearchStream, ElasticSearchOrderedStream
 from stream_extractor.utils import decouple
 from stream_extractor.valueExtractors import SentimentScoreExtractor
-from stream_extractor.exporter import InMemoryExporter
+from stream_extractor.exporters.exporters import InMemoryExporter
 from stream_extractor.resumers import LastIdResumer
 
 load_dotenv()
@@ -48,5 +48,4 @@ extractor = StreamFactory(
 )
 
 extractor.run()
-print(extractor.values)
 print(exporter.values)
