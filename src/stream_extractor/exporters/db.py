@@ -66,9 +66,13 @@ class MongoDbExporter(AbstractExporter):
             record = {k: x.to_dict() for k, x in item.items()}
             record['_id'] = k
             to_insert.append(record)
-        collection = getattr(self.db, 'collection' + str(self.collection_counter))
-        collection.insert_many(to_insert)
-        self.collection_counter += 1
+        if settings.MONGO_DB_COLLECTION_OVERRIDE:
+            self.collection.remove()
+            self.collection.insert_many(to_insert)
+        else:
+            collection = getattr(self.db, 'collection' + str(self.collection_counter))
+            collection.insert_many(to_insert)
+            self.collection_counter += 1
 
     def __call__(self, item, *args: Any, **kwds: Any) -> Any:
         index, key, date_p, date, x, value = item

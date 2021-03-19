@@ -64,6 +64,5 @@ class CounterPoint(AbstractPoint):
 
     def to_dict(self):
         return{
-            'avg': self.avg,
             'total': self.count
         }

@@ -24,7 +24,7 @@ class BinaryPatternExtractor(AbstractValueExtractor):
     def __init__(self, index_extractor: AbstractIndexExtractor, KEY: str, regex: str, unpack: str) -> None:
         self.index_extractor = index_extractor
         self.KEY = KEY
-        self.regex = re.compile(regex)
+        self.regex = re.compile(regex, re.IGNORECASE)
         self.unpack = unpack
 
     def __call__(self, doc, *args: Any, **kwds: Any) -> Any:
