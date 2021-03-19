@@ -15,7 +15,6 @@ class StreamFactory:
 
     def __init__(self,
                  stream: AbstractStream,
-                 index_extractor: AbstractIndexExtractor,
                  datefield: str,
                  value_extractors: List[AbstractValueExtractor],
                  num_max_items=float('inf'),
@@ -23,7 +22,6 @@ class StreamFactory:
                  save_every=1):
 
         self.stream = stream
-        self.index_extractor = index_extractor
         self.datefield = datefield
         self.value_extractors: List[AbstractValueExtractor] = value_extractors
         self.max_num_items = num_max_items
@@ -46,11 +44,14 @@ class StreamFactory:
                 return
             date = dateutil.parser.parse(getattr(doc, self.datefield))
             date_p = (date.year, date.month, date.day)
-            indexes = self.index_extractor(doc)
+            # indexes = self.index_extractor(doc)
             for extractor in self.value_extractors:
                 value = extractor(doc)
+                # if the extractor returns None, it means it is not importance
+                if value is None:
+                    continue
 
-                for index in indexes:
+                for index in extractor.index_extractor(doc):
                     x = self.values[index][extractor.KEY][date_p]
                     if x == {}:
                         x = extractor.POINT_CLASS()

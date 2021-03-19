@@ -50,7 +50,7 @@ class AvgPoint(AbstractPoint):
 
 class CounterPoint(AbstractPoint):
 
-    def __init_values(self):
+    def _init_values(self):
         self.count = 0
 
     def __call__(self, newpoint):
