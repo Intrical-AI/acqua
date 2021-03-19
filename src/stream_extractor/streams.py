@@ -1,10 +1,11 @@
 import os
 import logging
 
+from simple_settings import settings
+
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import Search
 from elasticsearch_dsl import connections
-import ipdb
 
 from .resumers import AbstractResumer
 
@@ -38,7 +39,7 @@ class AbstractStream:
         if self.resumer:
             self.resumer = self.resumer.load()
             self.last_id = self.resumer.last_id
-            logger.info('ElasticSearchStream loaded correctly, last_id: ', self.last_id)
+            logger.info('ElasticSearchStream loaded correctly, last_id: ' + str(self.last_id))
 
 
 class ElasticSearchStream(AbstractStream):
@@ -62,11 +63,11 @@ class ElasticSearchStream(AbstractStream):
 class ElasticSearchOrderedStream(ElasticSearchStream):
 
     last_id = 0
-    page_size = 10
+    page_size = settings.ELASTICSEARCH_PAGE_SIZE
 
     def subscribe(self):
         while True:
-            print(self.last_id)
+            logger.info(self.last_id)
             s = Search(index='intrical').query('match_all')\
                 .filter('range', id={'gt': self.last_id + 1, 'lt': self.last_id + self.page_size})
             for i, doc in enumerate(s.scan()):
