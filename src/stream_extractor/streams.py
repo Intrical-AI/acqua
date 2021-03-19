@@ -4,6 +4,7 @@ import logging
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import Search
 from elasticsearch_dsl import connections
+import ipdb
 
 from .resumers import AbstractResumer
 
@@ -33,6 +34,12 @@ class AbstractStream:
     def __getstate__(self):
         raise NotImplementedError
 
+    def load_state(self):
+        if self.resumer:
+            self.resumer = self.resumer.load()
+            self.last_id = self.resumer.last_id
+            logger.info('ElasticSearchStream loaded correctly, last_id: ', self.last_id)
+
 
 class ElasticSearchStream(AbstractStream):
 
@@ -44,10 +51,6 @@ class ElasticSearchStream(AbstractStream):
                                       timeout=20)
 
         self.client = Elasticsearch()
-        if self.resumer:
-            self.resumer = self.resumer.load()
-            self.last_id = self.resumer.last_id
-            logger.info('ElasticSearchStream loaded correctly, last_id: ', self.last_id)
 
     def subscribe(self):
         s = Search(index='intrical').query('match_all')

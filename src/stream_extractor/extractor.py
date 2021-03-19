@@ -1,4 +1,5 @@
 import typing
+from typing import List
 import dateutil.parser
 
 from rx.subject import Subject
@@ -6,6 +7,7 @@ from rx.subject import Subject
 from .streams import AbstractStream
 from .indexExtractors import AbstractIndexExtractor
 from .exporter import AbstractExporter
+from .valueExtractors import AbstractValueExtractor
 from .utils import rec_dd
 
 
@@ -15,7 +17,7 @@ class StreamFactory:
                  stream: AbstractStream,
                  index_extractor: AbstractIndexExtractor,
                  datefield: str,
-                 value_extractors: list,
+                 value_extractors: List[AbstractValueExtractor],
                  num_max_items=float('inf'),
                  exporter: AbstractExporter = None,
                  save_every=1):
@@ -23,7 +25,7 @@ class StreamFactory:
         self.stream = stream
         self.index_extractor = index_extractor
         self.datefield = datefield
-        self.value_extractors = value_extractors
+        self.value_extractors: List[AbstractValueExtractor] = value_extractors
         self.max_num_items = num_max_items
         self.values = rec_dd()
         self.exporter = exporter
@@ -34,7 +36,11 @@ class StreamFactory:
         if exporter:
             self._product_subject.subscribe(exporter)
 
+    def load_state(self):
+        self.stream.load_state()
+
     def run(self):
+        self.load_state()
         for i, doc in self.stream.subscribe():
             if i > self.max_num_items:
                 return
