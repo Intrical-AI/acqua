@@ -1,4 +1,5 @@
 import sys
+import logging
 from typing import Any
 from dotenv import load_dotenv
 
@@ -14,6 +15,7 @@ from stream_extractor.exporters.db import MongoDbExporter
 from stream_extractor.resumers import LastIdResumer
 
 load_dotenv()
+logging.basicConfig(level=logging.INFO)
 
 
 class CompanyIndexExtractor(AbstractIndexExtractor):
@@ -44,8 +46,7 @@ extractor = StreamFactory(
     index_extractor,
     'publish_date',
     value_extractors,
-    1,
-    exporters
+    exporters=exporters
 )
 
 extractor.run()
