@@ -46,19 +46,20 @@ class StreamFactory:
             date_p = (date.year, date.month, date.day)
             # indexes = self.index_extractor(doc)
             for extractor in self.value_extractors:
-                value = extractor(doc)
-                # if the extractor returns None, it means it is not importance
-                if value is None:
+                values = extractor(doc)
+                if values is None:
                     continue
+                for value in values:
+                    # if the extractor returns None, it means it is not importance
 
-                for index in extractor.index_extractor(doc):
-                    x = self.values[index][extractor.KEY][date_p]
-                    if x == {}:
-                        x = extractor.POINT_CLASS()
-                        self.values[index][extractor.KEY][date_p] = x
-                    x(value)
-                    if self.exporters:
-                        self._product_subject.on_next((index, extractor.KEY, date_p, date, x, value))
+                    for index in extractor.index_extractor(doc):
+                        x = self.values[index][extractor.KEY][date_p]
+                        if x == {}:
+                            x = extractor.POINT_CLASS()
+                            self.values[index][extractor.KEY][date_p] = x
+                        x(value)
+                        if self.exporters:
+                            self._product_subject.on_next((index, extractor.KEY, date_p, date, x, value))
             if self.doc_counter % self.save_every == 0:
                 self.stream.save_state()
             self.doc_counter += 1

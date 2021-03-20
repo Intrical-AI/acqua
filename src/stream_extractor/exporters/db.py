@@ -82,7 +82,7 @@ class MongoDbExporter(AbstractExporter):
         else:
             self.batch.add((frozendict(mongo_id), tuple(item)))
         self._doc_counter += 1
-        if self._doc_counter % settings.MONGO_DB_ITERATIONS == 0:
+        if settings.MONGO_DB_ITERATIONS > 0 and self._doc_counter % settings.MONGO_DB_ITERATIONS == 0:
             if settings.MONGO_DB_COLLECTION_BULK:
                 self.bulk_insert()
             else:
