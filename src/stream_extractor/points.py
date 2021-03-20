@@ -66,3 +66,20 @@ class CounterPoint(AbstractPoint):
         return{
             'total': self.count
         }
+
+
+class CountedListPoint(AbstractPoint):
+
+    def _init_values(self):
+        self.count = 0
+        self.values = []
+
+    def __call__(self, newpoint):
+        self.count += 1
+        self.values.append(newpoint)
+
+    def to_dict(self):
+        return{
+            'total': self.count,
+            'values': self.values
+        }
