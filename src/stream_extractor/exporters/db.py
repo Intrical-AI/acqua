@@ -116,7 +116,7 @@ class DynamoDBExporter(AbstractExporter):
                 pass
             try:
                 self.dynamodb.create_table(
-                    TableName='cache',
+                    TableName=os.environ['DYNAMODB_TABLENAME'],
                     KeySchema=[
                         {
                             'AttributeName': 'id',
