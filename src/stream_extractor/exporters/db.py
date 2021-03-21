@@ -1,5 +1,6 @@
 import os
 import pymongo
+import boto3
 
 from simple_settings import settings
 from frozendict import frozendict
@@ -92,3 +93,34 @@ class MongoDbExporter(AbstractExporter):
                 self._doc_counter = 0
                 self.bulk_upsert()
                 self.batch = set()
+
+
+class DynamoDBExporter(AbstractExporter):
+
+    def __init__(self) -> None:
+        super().__init__()
+        if 'DYNAMODB_ENDPOINT_URL' in os.environ:
+            self.dynamodb = boto3.resource('dynamodb', endpoint_url=os.environ['DYNAMODB_ENDPOINT_URL'])
+        else:
+            self.dynamodb = boto3.resource('dynamodb')
+        self.table = self.dynamodb.Table('DYNAMODB_TABLENAME')
+
+    def bulk_insert(self):
+        to_insert = []
+
+        for k, item in self.values.items():
+            record = item
+            record['id'] = k
+            to_insert.append(record)
+        with self.table.batch_writer() as batch:
+            for r in record:
+                batch.put_item(r)
+
+    def __call__(self, item, *args: Any, **kwds: Any) -> Any:
+        keys, x, value = item
+
+        # only bulk insert is supported for now
+        d = self.values[keys[0]]
+        for _key in keys[1:-1]:
+            d = d[_key]
+        d[keys[-1]] = x.to_dict()

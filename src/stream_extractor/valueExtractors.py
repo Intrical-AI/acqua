@@ -34,7 +34,9 @@ class BinaryPatternExtractor(AbstractValueExtractor):
         self.identifier = identifier
 
     def __call__(self, doc, *args: Any, **kwds: Any) -> Any:
+        res = []
         for text in decouple(doc, self.unpack):
             res = self.regex.search(text)
             if res:
-                return self.identifier(doc)
+                return res.append(self.identifier(doc))
+        return res
