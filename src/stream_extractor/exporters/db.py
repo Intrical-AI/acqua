@@ -106,30 +106,35 @@ class DynamoDBExporter(AbstractExporter):
         else:
             self.dynamodb = boto3.resource('dynamodb')
 
-        if settings.DYNAMODB_COLLECTION_OVERRIDE:
-            self.dynamodb.delete_table(TableName=os.environ['DYNAMODB_TABLENAME'])
-            self.dynamodb.create_table(
-                TableName='cache',
-                KeySchema=[
-                    {
-                        'AttributeName': 'id',
-                        'KeyType': 'HASH'  # Partition key
-                    },
-                ],
-                AttributeDefinitions=[
-                    {
-                        'AttributeName': 'id',
-                        'AttributeType': 'S'
-                    },
-
-                ],
-                ProvisionedThroughput={
-                    'ReadCapacityUnits': 10,
-                    'WriteCapacityUnits': 10
-                }
-            )
-
         self.table = self.dynamodb.Table(os.environ['DYNAMODB_TABLENAME'])
+
+        if settings.DYNAMODB_COLLECTION_OVERRIDE:
+            try:
+                self.table.delete()
+                self.dynamodb.create_table(
+                    TableName='cache',
+                    KeySchema=[
+                        {
+                            'AttributeName': 'id',
+                            'KeyType': 'HASH'  # Partition key
+                        },
+                    ],
+                    AttributeDefinitions=[
+                        {
+                            'AttributeName': 'id',
+                            'AttributeType': 'S'
+                        },
+
+                    ],
+                    ProvisionedThroughput={
+                        'ReadCapacityUnits': 10,
+                        'WriteCapacityUnits': 10
+                    }
+                )
+            except:
+                # pass in case the table does not exist
+                pass
+
         self.values = rec_dd()
         self.serializer = TypeSerializer()
 
