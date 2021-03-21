@@ -111,6 +111,10 @@ class DynamoDBExporter(AbstractExporter):
         if settings.DYNAMODB_COLLECTION_OVERRIDE:
             try:
                 self.table.delete()
+            except:
+                # pass in case the table does not exist
+                pass
+            try:
                 self.dynamodb.create_table(
                     TableName='cache',
                     KeySchema=[
