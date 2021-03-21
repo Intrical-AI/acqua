@@ -4,8 +4,10 @@ import boto3
 
 from simple_settings import settings
 from frozendict import frozendict
-
 from typing import Any
+
+from decimal import Decimal
+from boto3.dynamodb.types import TypeSerializer
 
 from .exporters import AbstractExporter
 from ..utils import rec_dd
@@ -103,7 +105,33 @@ class DynamoDBExporter(AbstractExporter):
             self.dynamodb = boto3.resource('dynamodb', endpoint_url=os.environ['DYNAMODB_ENDPOINT_URL'])
         else:
             self.dynamodb = boto3.resource('dynamodb')
-        self.table = self.dynamodb.Table('DYNAMODB_TABLENAME')
+
+        if settings.DYNAMODB_COLLECTION_OVERRIDE:
+            self.dynamodb.delete_table(TableName=os.environ['DYNAMODB_TABLENAME'])
+            self.dynamodb.create_table(
+                TableName='cache',
+                KeySchema=[
+                    {
+                        'AttributeName': 'id',
+                        'KeyType': 'HASH'  # Partition key
+                    },
+                ],
+                AttributeDefinitions=[
+                    {
+                        'AttributeName': 'id',
+                        'AttributeType': 'S'
+                    },
+
+                ],
+                ProvisionedThroughput={
+                    'ReadCapacityUnits': 10,
+                    'WriteCapacityUnits': 10
+                }
+            )
+
+        self.table = self.dynamodb.Table(os.environ['DYNAMODB_TABLENAME'])
+        self.values = rec_dd()
+        self.serializer = TypeSerializer()
 
     def bulk_insert(self):
         to_insert = []
@@ -113,7 +141,7 @@ class DynamoDBExporter(AbstractExporter):
             record['id'] = k
             to_insert.append(record)
         with self.table.batch_writer() as batch:
-            for r in record:
+            for r in to_insert:
                 batch.put_item(r)
 
     def __call__(self, item, *args: Any, **kwds: Any) -> Any:
@@ -123,4 +151,9 @@ class DynamoDBExporter(AbstractExporter):
         d = self.values[keys[0]]
         for _key in keys[1:-1]:
             d = d[_key]
-        d[keys[-1]] = x.to_dict()
+        new_x = {}
+        for k, v in x.to_dict().items():
+            if isinstance(v, float):
+                v = Decimal(v)
+            new_x[k] = v
+        d[keys[-1]] = self.serializer.serialize(new_x)
