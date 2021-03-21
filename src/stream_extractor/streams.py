@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 
 from simple_settings import settings
@@ -54,7 +55,7 @@ class ElasticSearchStream(AbstractStream):
         self.client = Elasticsearch()
 
     def subscribe(self):
-        s = Search(index='intrical').query('match_all')
+        s = Search(index='intrical3').query('match_all')
 
         for i, doc in enumerate(s.scan()):
             yield i, doc
@@ -80,3 +81,19 @@ class ElasticSearchOrderedStream(ElasticSearchStream):
 
     def __getstate__(self):
         return self.last_id
+
+
+class FileStream(AbstractStream):
+
+    def __init__(self, filename, format='json', *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.filename = filename
+        if format == 'json':
+            with open(filename, 'r') as infile:
+                self.doc = json.load(infile)
+                assert isinstance(self.doc, list), 'The file must contain a list of items'
+        else:
+            raise NotImplementedError('Non Json format not supported yet')
+
+    def subscribe(self):
+        return iter(self.doc)
