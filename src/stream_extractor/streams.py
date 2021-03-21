@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import queue
 
 from simple_settings import settings
 
@@ -97,3 +98,13 @@ class FileStream(AbstractStream):
 
     def subscribe(self):
         return iter(self.doc)
+
+
+class BufferStream(AbstractStream):
+
+    def __init__(self) -> None:
+        self.queue = queue.Queue()
+
+    def subscribe(self):
+        while True:
+            yield self.queue.get()
