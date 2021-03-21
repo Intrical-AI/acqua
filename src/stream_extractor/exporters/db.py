@@ -24,9 +24,8 @@ class MongoDbExporter(AbstractExporter):
         self._doc_counter = 0
         self.collection_counter = 0
 
-    def build_id(self, index, key):
-
-        id = '_'.join([index, key])
+    def build_id(self, values):
+        id = '_'.join(values)
         return {'_id': id}
 
     def bulk_upsert(self):
@@ -62,8 +61,9 @@ class MongoDbExporter(AbstractExporter):
 
     def bulk_insert(self):
         to_insert = []
+
         for k, item in self.values.items():
-            record = {k: x.to_dict() for k, x in item.items()}
+            record = item
             record['_id'] = k
             to_insert.append(record)
         if settings.MONGO_DB_COLLECTION_OVERRIDE:
@@ -75,10 +75,13 @@ class MongoDbExporter(AbstractExporter):
             self.collection_counter += 1
 
     def __call__(self, item, *args: Any, **kwds: Any) -> Any:
-        index, key, date_p, date, x, value = item
-        mongo_id = self.build_id(index, key)
+        keys, x, value = item
+
         if settings.MONGO_DB_COLLECTION_BULK:
-            self.values[mongo_id['_id']][date.date().isoformat()] = x
+            d = self.values[keys[0]]
+            for _key in keys[1:-1]:
+                d = d[_key]
+            d[keys[-1]] = x.to_dict()
         else:
             self.batch.add((frozendict(mongo_id), tuple(item)))
         self._doc_counter += 1

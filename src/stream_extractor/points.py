@@ -83,3 +83,22 @@ class CountedListPoint(AbstractPoint):
             'total': self.count,
             'values': self.values
         }
+
+
+class AvgListPoint(AvgPoint):
+
+    def _init_values(self):
+        super()._init_values()
+        self.values = []
+
+    def __call__(self, newpoint):
+        value, id = newpoint
+        super().__call__(value)
+        self.values.append(id)
+
+    def to_dict(self):
+        return{
+            'avg': self.avg,
+            'total': self.total,
+            'values': self.values
+        }

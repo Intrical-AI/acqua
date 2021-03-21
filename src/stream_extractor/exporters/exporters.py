@@ -15,5 +15,8 @@ class InMemoryExporter:
         self.values = rec_dd()
 
     def __call__(self, item, *args: Any, **kwds: Any) -> Any:
-        index, key, date_p, date, x, value = item
-        self.values[index][key][date_p] = x
+        keys, x, value = item
+        d = self.values
+        for _key in keys[:-1]:
+            d = d[_key]
+        d[keys[-1]] = x
