@@ -67,6 +67,13 @@ class CounterPoint(AbstractPoint):
             'total': self.count
         }
 
+    def __add__(self, obj):
+        assert isinstance(obj, self.__class__), f'''Add two objects from the same class
+        Not {self.__class__.__name__} and {obj.__class__.__name__}'''
+        res = CounterPoint()
+        res.count = self.count + obj.count
+        return res
+
 
 class CountedListPoint(AbstractPoint):
 

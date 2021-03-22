@@ -7,7 +7,6 @@ from rx.subject import Subject
 from .streams import AbstractStream
 from .indexExtractors import AbstractIndexExtractor
 from .exporters.exporters import AbstractExporter
-from .valueExtractors import AbstractValueExtractor
 from .kvextractors import AbstractKVExtractors
 from .utils import rec_dd
 
@@ -40,12 +39,15 @@ class StreamFactory:
 
     def run(self):
         self.load_state()
+
         for i, doc in self.stream.subscribe():
             if i > self.max_num_items:
                 return
-
+            print(i, end='\r')
             for extractor in self.value_extractors:
                 keys = extractor(doc)
+                if keys is None:
+                    continue
                 keys = list(map(lambda key: ([key], 0), keys))
                 while len(keys) > 0:
                     keyset = keys.pop()
@@ -55,8 +57,9 @@ class StreamFactory:
                     level_function = getattr(extractor, '_level' + str(level), False)
                     if not level_function:
                         # do insert pass
-                        value = extractor.get_value(doc, key)
-
+                        value = extractor.get_value(doc, nested_keys)
+                        if value is None:
+                            continue
                         d = self.values
                         for _key in nested_keys[:-1]:
                             d = d[_key]

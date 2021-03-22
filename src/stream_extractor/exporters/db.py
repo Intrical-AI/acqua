@@ -21,7 +21,7 @@ class MongoDbExporter(AbstractExporter):
             f"mongodb+srv://{os.environ.get('MONGO_DB_USER')}:{os.environ.get('MONGO_DB_PASSWORD')}@cluster0.jo4tb.mongodb.net/{os.environ.get('MONGO_DB_DB')}?retryWrites=true&w=majority")
 
         self.db = self.client.cache
-        self.collection = self.db.testCollection
+        self.collection = self.db.sector
         self.batch = set()
         self.values = rec_dd()
         self._doc_counter = 0
@@ -32,35 +32,35 @@ class MongoDbExporter(AbstractExporter):
         return {'_id': id}
 
     def bulk_upsert(self):
-        to_insert = {}
-        for mongo_id, item in self.batch:
-            index, key, date_p, date, x, value = item
+        to_update = []
+        for key in self.batch:
+            item = self.values[key]
+            record = item
+            record['_id'] = key
+            to_update.append(record)
 
-            old_value = self.collection.find_one(mongo_id)
-            if old_value is not None:
-                del old_value['_id']
-                x_old = x.__class__(old_value)
-                # this is to check if the stored values has the necessary values, in case subsititute with
-                # the new one
-                try:
-                    new_value = x.__class__(old_value) + x
-                except:
-                    new_value = x
+        self.collection.update_many(to_update, upsert=True)
 
-                record = new_value.to_dict()
-                date = date.isoformat()
-                self.collection.update_one(mongo_id, {"$set": {date: record}}, upsert=True)
+    def online_upsert(self, keys, obj, value):
+        item = self.collection.find_one({'_id': keys[0]})
+        if item is not None:
+            d = item
+            for last_i, k in enumerate(keys[1:-1]):
+                last_d = d
+                d = d.get(k, None)
+                if d is None:
+                    break
+            if d is not None:
+                d[keys[-1]] = {**d[keys[-1]], **(obj.__class__(d[keys[-1]]) + obj).to_dict()}
             else:
-                record = x.to_dict()
-                date = date.isoformat()
-                if mongo_id['_id'] in to_insert:
-                    self.collection.insert_many(to_insert.values())
-                    to_insert = {}
-                else:
-                    to_insert[mongo_id['_id']] = {date: record, **mongo_id}
+                for key in keys[1 + last_i:-1]:
+                    nd = {}
+                    last_d[key] = nd
+                    last_d = nd
+                nd[keys[-1]] = obj.to_dict()
 
-        if to_insert:
-            self.collection.insert_many(to_insert.values())
+            id = {'_id': item['_id']}
+            self.collection.replace_one(id, item, upsert=True)
 
     def bulk_insert(self):
         to_insert = []
@@ -80,13 +80,17 @@ class MongoDbExporter(AbstractExporter):
     def __call__(self, item, *args: Any, **kwds: Any) -> Any:
         keys, x, value = item
 
-        if settings.MONGO_DB_COLLECTION_BULK:
-            d = self.values[keys[0]]
-            for _key in keys[1:-1]:
-                d = d[_key]
-            d[keys[-1]] = x.to_dict()
+        d = self.values[keys[0]]
+        for _key in keys[1:-1]:
+            d = d[_key]
+
+        if not settings.MONGO_DB_COLLECTION_BULK:
+            self.batch.add(keys[0])
+        if settings.MONGO_DB_ONLINE:
+            d[keys[-1]] = x
+            self.online_upsert(keys, x, value)
         else:
-            self.batch.add((frozendict(mongo_id), tuple(item)))
+            d[keys[-1]] = x.to_dict()
         self._doc_counter += 1
         if settings.MONGO_DB_ITERATIONS > 0 and self._doc_counter % settings.MONGO_DB_ITERATIONS == 0:
             if settings.MONGO_DB_COLLECTION_BULK:
