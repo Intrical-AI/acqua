@@ -19,3 +19,11 @@ def decouple(obj, query: str):
 
 def rec_dd():
     return defaultdict(rec_dd)
+
+
+def nested_get(dic, keys):
+    for key in keys:
+        dic = dic.get(key, None)
+        if dic is None:
+            return None
+    return dic

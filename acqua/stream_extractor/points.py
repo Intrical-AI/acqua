@@ -64,7 +64,7 @@ class CounterPoint(AbstractPoint):
 
     def to_dict(self):
         return{
-            'total': self.count
+            'count': self.count
         }
 
     def __add__(self, obj):
