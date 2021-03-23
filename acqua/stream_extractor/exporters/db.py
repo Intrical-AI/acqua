@@ -10,7 +10,7 @@ from decimal import Decimal
 from boto3.dynamodb.types import TypeSerializer
 
 from .exporters import AbstractExporter
-from ..utils import rec_dd
+from ..utils import rec_dd, nested_get
 
 
 class MongoDbExporter(AbstractExporter):
@@ -44,23 +44,24 @@ class MongoDbExporter(AbstractExporter):
     def online_upsert(self, keys, obj, value):
         item = self.collection.find_one({'_id': keys[0]})
         if item is not None:
+            nested_obj = nested_get(item, keys[1:])
+            if nested_obj:
+                new_obj = obj.__class__(nested_obj) + obj
+            else:
+                new_obj = obj
+            update_expression = {'$set': {'.'.join(keys[1:]): new_obj.to_dict()}}
+            id = {'_id': item['_id']}
+            self.collection.update_one(id, update_expression)
+        else:
+            # insert value
+            item = rec_dd()
             d = item
             for last_i, k in enumerate(keys[1:-1]):
                 last_d = d
-                d = d.get(k, None)
-                if d is None:
-                    break
-            if d is not None:
-                d[keys[-1]] = {**d[keys[-1]], **(obj.__class__(d[keys[-1]]) + obj).to_dict()}
-            else:
-                for key in keys[1 + last_i:-1]:
-                    nd = {}
-                    last_d[key] = nd
-                    last_d = nd
-                nd[keys[-1]] = obj.to_dict()
-
-            id = {'_id': item['_id']}
-            self.collection.replace_one(id, item, upsert=True)
+                d = d.get(k)
+            d['_id'] = keys[0]
+            d[keys[-1]] = obj.to_dict()
+            self.collection.insert_one(dict(item))
 
     def bulk_insert(self):
         to_insert = []
@@ -91,14 +92,14 @@ class MongoDbExporter(AbstractExporter):
             self.online_upsert(keys, x, value)
         else:
             d[keys[-1]] = x.to_dict()
+            if settings.MONGO_DB_ITERATIONS > 0 and self._doc_counter % settings.MONGO_DB_ITERATIONS == 0:
+                if settings.MONGO_DB_COLLECTION_BULK:
+                    self.bulk_insert()
+                else:
+                    self._doc_counter = 0
+                    self.bulk_upsert()
+                    self.batch = set()
         self._doc_counter += 1
-        if settings.MONGO_DB_ITERATIONS > 0 and self._doc_counter % settings.MONGO_DB_ITERATIONS == 0:
-            if settings.MONGO_DB_COLLECTION_BULK:
-                self.bulk_insert()
-            else:
-                self._doc_counter = 0
-                self.bulk_upsert()
-                self.batch = set()
 
 
 class DynamoDBExporter(AbstractExporter):
