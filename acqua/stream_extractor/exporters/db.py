@@ -1,6 +1,7 @@
 import os
 import pymongo
 import boto3
+import logging
 
 from simple_settings import settings
 from frozendict import frozendict
@@ -12,6 +13,7 @@ from boto3.dynamodb.types import TypeSerializer
 from .exporters import AbstractExporter
 from ..utils import rec_dd, nested_get
 
+logger = logging.getLogger('MongoExporter')
 
 class MongoDbExporter(AbstractExporter):
 
@@ -21,7 +23,7 @@ class MongoDbExporter(AbstractExporter):
             f"mongodb+srv://{os.environ.get('MONGO_DB_USER')}:{os.environ.get('MONGO_DB_PASSWORD')}@cluster0.jo4tb.mongodb.net/{os.environ.get('MONGO_DB_DB')}?retryWrites=true&w=majority")
 
         self.db = self.client.cache
-        self.collection = self.db.sector
+        self.collection = self.db[settings.MONGO_DB_COLLECTION]
         self.batch = set()
         self.values = rec_dd()
         self._doc_counter = 0
@@ -52,16 +54,17 @@ class MongoDbExporter(AbstractExporter):
             update_expression = {'$set': {'.'.join(keys[1:]): new_obj.to_dict()}}
             id = {'_id': item['_id']}
             self.collection.update_one(id, update_expression)
+            logger.debug(f'Update: ({id}){update_expression}')
         else:
             # insert value
             item = rec_dd()
             d = item
-            for last_i, k in enumerate(keys[1:-1]):
-                last_d = d
-                d = d.get(k)
-            d['_id'] = keys[0]
+            for k in keys[1:-1]:
+                d = d[k]
+            item['_id'] = keys[0]
             d[keys[-1]] = obj.to_dict()
             self.collection.insert_one(dict(item))
+            logger.debug(f'Insert: {dict(item)}')
 
     def bulk_insert(self):
         to_insert = []
