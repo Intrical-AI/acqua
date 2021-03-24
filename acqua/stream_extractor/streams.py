@@ -16,6 +16,8 @@ logger = logging.getLogger()
 
 class AbstractStream:
 
+    resumer = None
+
     def __init__(self, resumer: AbstractResumer = None) -> None:
         self.resumer: AbstractResumer = resumer
 
@@ -104,7 +106,9 @@ class BufferStream(AbstractStream):
 
     def __init__(self) -> None:
         self.queue = queue.Queue()
+        self.counter = 0
 
     def subscribe(self):
         while True:
-            yield self.queue.get()
+            yield 1, self.queue.get()
+            self.counter += 1
