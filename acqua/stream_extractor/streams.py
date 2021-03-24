@@ -110,5 +110,6 @@ class BufferStream(AbstractStream):
 
     def subscribe(self):
         while True:
-            yield 1, self.queue.get()
+            doc= self.queue.get()
+            yield self.counter, doc
             self.counter += 1

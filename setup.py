@@ -18,7 +18,7 @@ long_description = (here / 'README.md').read_text(encoding='utf-8')
 
 setup(
     name='Acqua',
-    version='0.0.13',
+    version='0.0.17',
     description='A flow based library to precompute analytics',
     long_description=long_description,
     long_description_content_type='text/markdown',
