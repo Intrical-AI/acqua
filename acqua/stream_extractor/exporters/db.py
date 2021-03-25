@@ -9,6 +9,7 @@ from typing import Any
 
 from decimal import Decimal
 from boto3.dynamodb.types import TypeSerializer
+from boto3.dynamodb.types import TypeDeserializer
 
 from .exporters import AbstractExporter
 from ..utils import rec_dd, nested_get
@@ -149,6 +150,7 @@ class DynamoDBExporter(AbstractExporter):
 
         self.values = rec_dd()
         self.serializer = TypeSerializer()
+        self.deserializer = TypeDeserializer()
 
     def bulk_insert(self):
         to_insert = []
@@ -160,6 +162,39 @@ class DynamoDBExporter(AbstractExporter):
         with self.table.batch_writer() as batch:
             for r in to_insert:
                 batch.put_item(r)
+                
+    def online_upsert(self, keys, item, x):
+        resp = self.table.get_item(Key={'id': keys[0]})
+        if 'Item' in resp:
+            # object is already present
+            nested_obj = nested_get(item, keys[1:])
+            if nested_obj:
+                nested_obj = self.deserializer.deserialize(nested_obj)
+                new_obj = x.__class__(nested_obj) + x
+            else:
+                new_obj = x
+                
+            keys_dot_notation='.'.join(
+                ['#key'+str(i) for i in range(len(keys)-1)])
+            response = self.table.update_item(
+                Key={'id': keys[0]},
+                UpdateExpression="set "+keys_dot_notation+' =:r',
+                ExpressionAttributeNames ={
+                    k:key
+                    for k,key in zip(keys_dot_notation.split('.'), keys[1:])
+                },
+                ExpressionAttributeValues={
+                    ':r':new_obj.to_dict()
+                },
+                ReturnValues="UPDATED_NEW"
+            )
+            print(response)
+        else:
+            # insert the new object
+            item = {**item, 'id':keys[0]}
+            self.table.put_item(Item=item)
+            logger.debug(f'Insert: {dict(item)}')
+            
 
     def __call__(self, item, *args: Any, **kwds: Any) -> Any:
         keys, x, value = item
@@ -174,3 +209,7 @@ class DynamoDBExporter(AbstractExporter):
                 v = Decimal(v)
             new_x[k] = v
         d[keys[-1]] = self.serializer.serialize(new_x)
+        if settings.DYNAMO_DB_ONLINE:
+            # recast it to the acc point
+            new_x  = x.__class__(new_x)
+            self.online_upsert(keys, self.values[keys[0]], new_x)

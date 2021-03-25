@@ -3,7 +3,8 @@ class AbstractPoint:
     def __init_values(self):
         raise NotImplementedError
 
-    def __init__(self, state=None) -> None:
+    def __init__(self, state=None, type=float) -> None:
+        self.type = type
         if state is None:
             self._init_values()
         else:
@@ -19,9 +20,10 @@ class AbstractPoint:
 
 class AvgPoint(AbstractPoint):
 
+
     def _init_values(self):
-        self.avg = 0
-        self.total = 0
+        self.avg = self.type(0)
+        self.total = self.type(0)
 
     def __call__(self, newpoint):
         self.avg = (self.avg * self.total + newpoint) / (self.total + 1)
@@ -51,7 +53,7 @@ class AvgPoint(AbstractPoint):
 class CounterPoint(AbstractPoint):
 
     def _init_values(self):
-        self.count = 0
+        self.count = self.type(0)
 
     def __call__(self, newpoint):
         self.count += 1
@@ -78,7 +80,7 @@ class CounterPoint(AbstractPoint):
 class CountedListPoint(AbstractPoint):
 
     def _init_values(self):
-        self.count = 0
+        self.count = self.type(0)
         self.values = []
 
     def __call__(self, newpoint):
